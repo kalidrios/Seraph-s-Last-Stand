@@ -78,6 +78,7 @@ let platforms = [];
 let gameTime = 0;
 let keys = {};
 let currentUpgradeChoices = [];
+let mouseX = canvas.width / 2, mouseY = canvas.height / 2;
 
 const GRAVITY = 0.5;
 const ENEMY_SPAWN_RATE_INITIAL = 240; // Ticks
@@ -228,7 +229,25 @@ class Player extends Entity {
     }
 
     jump() { if (this.jumpsLeft > 0) { this.vy = -this.stats.jumpHeight * this.stats.jumpHeightMultiplier; this.jumpsLeft--; } }
-    shoot() { const pSize = 5 * this.stats.projectileSizeMultiplier; projectiles.push(new Projectile(this.x, this.y - this.h, pSize, this.stats.projectileDamage, this.stats.projectileHits, this.stats.critChance, this.stats.critDamageMultiplier, this.stats.hasBleed, true)); }
+    shoot() {
+        const pSize = 5 * this.stats.projectileSizeMultiplier;
+        const angle = Math.atan2(mouseY - (this.y - this.h), mouseX - this.x);
+        const speed = 10;
+        const proj = new Projectile(
+            this.x,
+            this.y - this.h,
+            pSize,
+            this.stats.projectileDamage,
+            this.stats.projectileHits,
+            this.stats.critChance,
+            this.stats.critDamageMultiplier,
+            this.stats.hasBleed,
+            true
+        );
+        proj.vx = Math.cos(angle) * speed;
+        proj.vy = Math.sin(angle) * speed;
+        projectiles.push(proj);
+    }
     takeDamage(dmg) {
         if (this.isInvincible) return; if (this.stats.hasBarrier && this.isBarrierReady) { this.isBarrierReady = false; this.lastBarrierTime = Date.now(); return; }
         const actualDmg = dmg * (1 - this.stats.defense); this.hp -= actualDmg; this.isInvincible = true; this.invincibleTimer = Date.now();
@@ -255,8 +274,9 @@ class Projectile extends Entity {
 class Enemy extends Entity {
     constructor() {
         const size = random(15, 30); super(random(0, canvas.width), -size, size, size);
-        const defaultY = canvas.height * (1 - ENEMY_SPAWN_Y_PERCENT) - random(0, 200);
-        this.targetY  = Math.min(defaultY, player.y - SAFE_PLAYER_DISTANCE);
+        const maxY = Math.min(canvas.height * 0.4, player.y - SAFE_PLAYER_DISTANCE);
+        const minY = 80;
+        this.targetY = random(minY, maxY);
         this.speed = (random(0.5, 1.5) + gameTime / 600);
         this.hp = (5 + gameTime / 30) * Math.floor(this.w / 15); this.damage = 5 + Math.floor(gameTime / 60); this.expValue = Math.floor(this.w / 10);
         this.state = 'descending'; this.shootCooldown = random(2000, 4000); this.lastShotTime = Date.now(); this.bleedTicks = 0; this.bleedTimer = 0;
@@ -266,12 +286,13 @@ class Enemy extends Entity {
         ctx.fillStyle = 'green'; ctx.fillRect(this.x - this.w / 2, this.y - this.w / 2 - 10, this.w * (this.hp / ((5 + gameTime / 30) * Math.floor(this.w / 15))), 5);
     }
     update() {
-        if (this.state === 'descending') {
+           if (this.state === 'descending') {
             this.y += this.speed;
             if (this.y >= this.targetY) {
                 this.y    = this.targetY;
                 this.state = 'attacking';
             }
+        }
         }
         else if (this.state === 'attacking') { if (Date.now() - this.lastShotTime > this.shootCooldown) { this.shoot(); this.lastShotTime = Date.now(); } }
         if (this.bleedTicks > 0) { if (Date.now() - this.bleedTimer > 1000) { this.takeDamage(player.stats.projectileDamage * 0.1); this.bleedTicks--; this.bleedTimer = Date.now(); } }
@@ -409,7 +430,11 @@ window.addEventListener('keydown', (e) => { keys[e.key.toLowerCase()] = true; if
 window.addEventListener('keyup', (e) => { keys[e.key.toLowerCase()] = false; });
 canvas.addEventListener('mousedown', (e) => { keys['mouse'] = true; if (gameState === 'gameOver') init(); });
 canvas.addEventListener('mouseup', (e) => { keys['mouse'] = false; });
-
+canvas.addEventListener('mousemove', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    mouseX = e.clientX - rect.left;
+    mouseY = e.clientY - rect.top;
+});
 // Start game
 defineLevelGeometryFromArray();
 init();
