@@ -85,11 +85,10 @@ const ENEMY_SPAWN_Y_PERCENT = 0.1;
 
 // --- ASSETS & DATA ---
 const levelImage = new Image();
-let levelDataLoaded = false;
 levelImage.onload = () => {
     defineLevelGeometryFromImage();
-    levelDataLoaded = true;
-    init();
+    init(); // Inicializa o jogo
+    gameLoop(); // Inicia o loop do jogo
 };
 levelImage.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAFAAAAAUCAYAAAAa2e09AAAAAXNSR0IArs4c6QAAAARnQU1BAACxjwv8YQUAAAAJcEhZcwAADsMAAA7DAcdvqGQAAABRSURBVFhH7c4xAQAgDMCwgH/fQ+kNpBMSyxz59w4DAwODFgaGBQYGBoYFBgYGhgUGBgYGE2SYcMKEASYMGGHChAkDTJgwYgAGBgZfH08qB4YjJv1zAAAAAElFTkSuQmCC'; // 2-bit encoded image of the level
 
@@ -599,6 +598,7 @@ function defineLevelGeometryFromImage() {
 
     const TILE_SIZE = canvas.width / tempCanvas.width;
     
+    platforms = []; // Limpa as plataformas antes de recriar
     for (let y = 0; y < tempCanvas.height; y++) {
         for (let x = 0; x < tempCanvas.width; x++) {
             const index = (y * tempCanvas.width + x) * 4;
@@ -818,12 +818,6 @@ canvas.addEventListener('mousedown', (e) => {
 canvas.addEventListener('mouseup', (e) => {
     keys['mouse'] = false;
 });
-
-// Start game
-if(levelDataLoaded){
-    init();
-    gameLoop();
-}
 
 </script>
 </body>
